@@ -1,0 +1,131 @@
+﻿@model TelerikTagHelperDashboard.Models.OrderSearchCriteria
+@{
+    ViewBag.Title = "Team Efficiency";
+}
+<section id="app-title-bar" class="row">
+    <div class="col-sm-3">
+        <h1 class="title">@ViewBag.Title</h1>
+    </div>
+</section>
+<div class="hamburger">
+    <kendo-button name="menuPanelOpen" icon="menu" class="k-rpanel-toggle">menu</kendo-button>
+</div>
+<div class="app-wrapper">
+    <!-- Menu Panel -->
+    <partial name="_MenuPanel" />
+    <!-- /Menu Panel -->
+    <section id="main-section-content" class="row">
+        <article class="col-xs-12">
+            <!-- Report Header -->
+            <section id="employee-details" class="row">
+                <div id="employee-about" class="col-xs-12 col-lg-4">
+                    <!-- Employee Avatar Template -->
+                    <!-- /Employee Avatar Template -->
+                </div>
+                <div class="col-xs-12 col-lg-4">
+                    <div class="chart-wrap">
+                        <h3 class="chart-title">Quarter to date sales</h3>
+                        <p class="sales-report-value" id="EmployeeQuarterSalesLabel"></p>
+                        <!-- QTD Sales Chart -->
+                        <partial name="_QuarterToDateSalesChart" />
+                        <!-- /QTD Sales Chart -->
+                    </div>
+                </div>
+                <div class="col-xs-12 col-lg-4">
+                    <div class="chart-wrap">
+                        <h3 class="chart-title">Monthly Average Sales</h3>
+                        <p class="sales-report-value" id="EmployeeAverageSalesLabel"></p>
+                        <!-- Montly Sales Chart -->
+                        <partial name="_MonthlySalesChart" />
+                        <!-- /Montly Sales Chart -->
+                    </div>
+                </div>
+            </section>
+            <!-- /Report Header -->
+            <div class="row">
+                <div class="col-xs-12">
+                    <h3>Representative orders</h3>
+                    <!-- Invoices -->
+                    <partial name="_InvoicesGrid" />
+                    <!-- /Invoices -->
+                </div>
+            </div>
+        </article>
+    </section>
+</div>
+<!-- /Kendo Templates -->
+<script type="text/x-kendo-tmpl" id="EmployeeAvatarTemplate">
+    <div class="row">
+        <div class="col-xs-12 col-sm-2">
+            <img src="@(Url.Content("~/images/employees/"))#:EmployeeId#.png" />
+        </div>
+        <div class="col-xs-12 col-sm-6">
+            <span class="employee-name">#:FullName#</span>
+        </div>
+    </div>
+</script>
+<!-- /Kendo Templates -->
+@section Scripts {
+    <script>
+        let employeeState, ui;
+
+        $(function () {
+            ui = {
+                tree: $("#EmployeesList").data("kendoTreeView"),
+                from: $("#StatsFrom").data("kendoDatePicker"),
+                to: $("#StatsTo").data("kendoDatePicker"),
+                grid: $("#EmployeeSales").data("kendoGrid"),
+                quarterSales: $("#EmployeeQuarterSales").data("kendoChart"),
+                averageSales: $("#EmployeeAverageSales").data("kendoChart"),
+            }
+        })
+
+        function onListDataBound() {
+            if (!employeeState) {
+                this.select($(".k-item:first"));
+                employeeState = this.dataSource.getByUid(this.select()[0].dataset.uid);
+                onCriteriaChange();
+            }
+        }
+        function updateEmployeeAvatar() {
+            let template = kendo.template($("#EmployeeAvatarTemplate").html());
+
+            $("#employee-about").html(template(employeeState));
+        }
+
+        function setEmployeeState(e) {
+            employeeState = ui.tree.dataSource.getByUid(e.node.dataset.uid);
+            onCriteriaChange();
+        }
+
+        function onCriteriaChange() {
+            ui.grid.dataSource.read();
+            ui.quarterSales.dataSource.read();
+            ui.averageSales.dataSource.read();
+            updateEmployeeAvatar();
+        }
+
+        function getOrderSearchCriteria() {
+            return {
+                employeeId: employeeState.EmployeeId,
+                salesPerson: employeeState.FullName,
+                statsFrom: ui.from.value().toJSON(),
+                statsTo: ui.to.value().toJSON()
+            };
+        }
+        function onQuarterSalesDataBound(e) {
+            let data = this.dataSource.at(0);
+            $("#EmployeeQuarterSalesLabel").text(kendo.toString(data.Current, "c2"));
+        }
+        function onAverageSalesDataBound(e) {
+            var  data = this.dataSource.aggregates(),
+                label = $("#EmployeeQuarterSalesLabel");
+            if (data.EmployeeSales) {
+                label.text(kendo.toString(data.EmployeeSales.average, "c2"));
+            } else {
+                label.text(kendo.toString(0, "c2"));
+            }
+        }
+        
+    </script>
+}
